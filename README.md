@@ -10,6 +10,7 @@ Projects completed during the **MSc in Data Science & Business Analytics** at **
 |---|---|---|---|
 | [Customer Churn Prediction](./Customer_Churn_Prediction/) | Machine Learning | LightGBM, XGBoost, SMOTE, SHAP, WandB | `Customer_Churn_Prediction/` |
 | [Cross-Domain Opinion Mining](./NLP_Opinion_Mining/) | NLP / Deep Learning | BERT Fine-Tuning, HuggingFace, TF-IDF, WandB | `NLP_Opinion_Mining/` |
+| [Customer Marketing Analytics](./CMA_Marketing_Analytics/) | Marketing Analytics | OLS, Logistic Regression, Negative Binomial, statsmodels | `CMA_Marketing_Analytics/` |
 
 ---
 
@@ -32,6 +33,17 @@ Projects completed during the **MSc in Data Science & Business Analytics** at **
 **Highlights:** TF-IDF+LR vs frozen BERT vs fine-tuned BERT benchmarking, WandB hyperparameter sweeps, supervised by Prof. Gianluca Moro & Dr. Giacomo Frisoni (DISI, University of Bologna)  
 
 → [View Project](./NLP_Opinion_Mining/)
+
+---
+
+## Customer Marketing Analytics — Influencer Campaign Analysis
+
+**Dataset:** Social media influencer campaign data — engagement, click-through, comment metrics  
+**Objective:** Multi-model regression analysis to identify drivers of campaign performance  
+**Models:** OLS Linear Regression, Binary Logistic Regression, Negative Binomial Regression, OLS + Interaction Terms  
+**Highlights:** Full model comparison across Q1–Q4, statsmodels pipeline, PowerPoint presentation deck included  
+
+→ [View Project](./CMA_Marketing_Analytics/)
 
 ---
 

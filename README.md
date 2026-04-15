@@ -11,6 +11,7 @@ Projects completed during the **MSc in Data Science & Business Analytics** at **
 | [Customer Churn Prediction](./Customer_Churn_Prediction/) | Machine Learning | LightGBM, XGBoost, SMOTE, SHAP, WandB | `Customer_Churn_Prediction/` |
 | [Cross-Domain Opinion Mining](./NLP_Opinion_Mining/) | NLP / Deep Learning | BERT Fine-Tuning, HuggingFace, TF-IDF, WandB | `NLP_Opinion_Mining/` |
 | [Customer Marketing Analytics](./CMA_Marketing_Analytics/) | Marketing Analytics | OLS, Logistic Regression, Negative Binomial, statsmodels | `CMA_Marketing_Analytics/` |
+| [Data Mining — California Housing](./Data_Mining/) | Data Mining / ML | EDA, Pareto Frontier, Skyline Operator, Scikit-learn | `Data_Mining/` |
 
 ---
 
@@ -44,6 +45,16 @@ Projects completed during the **MSc in Data Science & Business Analytics** at **
 **Highlights:** Full model comparison across Q1–Q4, statsmodels pipeline, PowerPoint presentation deck included  
 
 → [View Project](./CMA_Marketing_Analytics/)
+
+---
+
+## Data Mining — California Housing Case Study
+
+**Dataset:** California census housing data (20,640 blocks, 10 attributes)  
+**Objective:** End-to-end data mining workflow — profiling, geospatial visualisation, Pareto frontier analysis, and ML prediction pipeline  
+**Highlights:** Skyline operator (multi-objective optimisation), feature engineering, Pareto frontier (2D & 3D), full supervised learning pipeline  
+
+→ [View Project](./Data_Mining/)
 
 ---
 

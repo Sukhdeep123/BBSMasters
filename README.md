@@ -1,2 +1,42 @@
-# BBSMasters
-Projects done during Masters
+# BBS Masters — Data Science & Business Analytics Projects
+
+Projects completed during the **MSc in Data Science & Business Analytics** at **Bologna Business School** (University of Bologna).
+
+---
+
+## Projects
+
+| Project | Domain | Key Techniques | Folder |
+|---|---|---|---|
+| [Customer Churn Prediction](./Customer_Churn_Prediction/) | Machine Learning | LightGBM, XGBoost, SMOTE, SHAP, WandB | `Customer_Churn_Prediction/` |
+| [Cross-Domain Opinion Mining](./NLP_Opinion_Mining/) | NLP / Deep Learning | BERT Fine-Tuning, HuggingFace, TF-IDF, WandB | `NLP_Opinion_Mining/` |
+
+---
+
+## Customer Churn Prediction
+
+**Dataset:** 1.4M-record Italian auto-insurance dataset (2015–2020) across 4 relational sources  
+**Objective:** Binary classification — predict policy non-renewal for targeted retention  
+**Best Model:** LightGBM — **AUC 0.884 | Recall 93.6%**  
+**Highlights:** SMOTE for class imbalance, SHAP interpretability, WandB experiment tracking, interactive churn dashboard  
+
+→ [View Project](./Customer_Churn_Prediction/)
+
+---
+
+## Cross-Domain Opinion Mining — BERT & NLP
+
+**Dataset:** ~150K Amazon reviews across Gift Cards & Magazine Subscription domains  
+**Objective:** Train sentiment classifier in one domain, evaluate cross-domain transfer robustness  
+**Best Model:** Fine-Tuned BERT — **92.15% accuracy**  
+**Highlights:** TF-IDF+LR vs frozen BERT vs fine-tuned BERT benchmarking, WandB hyperparameter sweeps, supervised by Prof. Gianluca Moro & Dr. Giacomo Frisoni (DISI, University of Bologna)  
+
+→ [View Project](./NLP_Opinion_Mining/)
+
+---
+
+## Program
+
+**Degree:** MSc Data Science & Business Analytics  
+**Institution:** Bologna Business School — University of Bologna  
+**Location:** Bologna, Italy

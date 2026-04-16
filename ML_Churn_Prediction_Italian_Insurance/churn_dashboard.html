@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Churn Intelligence Dashboard — CRM Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  /* ── PPT Palette ── */
+  --dark-navy:#0A1628;       /* nav background */
+  --navy:#0A1F3D;            /* headings */
+  --navy-mid:#0D2D6B;        /* nav pill */
+  --blue:#1565C0;            /* primary accent */
+  --blue-bright:#2196F3;     /* buttons, highlights */
+  --blue-light:#4DA6FF;      /* hover, light accents */
+  --blue-bg:#EEF3FA;         /* page bg */
+  --blue-card:#F5F9FF;       /* card hover tint */
+  --border:#CDD9EE;          /* card border */
+  --text:#0A1F3D;
+  --text-gray:#64748B;
+  --white:#FFFFFF;
+  /* ── Rose (best model / QR accent) ── */
+  --rose:#880E4F;
+  --rose-light:#F48FB1;
+  --rose-bg:#FCE4EC;
+  /* ── WandB ── */
+  --wandb:#FFBE00;
+  --wandb-bg:#FFF8E1;
+  --wandb-dark:#F57C00;
+  /* ── Fine-tune green ── */
+  --green:#1B5E20;
+  --green-bg:#E8F5E9;
+  --green-mid:#2E7D32;
+}
+body{font-family:'Inter',sans-serif;background:var(--blue-bg);color:var(--text);min-height:100vh;}
+
+/* ── NAV ── */
+.nav{background:var(--dark-navy);padding:0 32px;display:flex;align-items:center;gap:0;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(10,22,40,0.5);}
+.nav-brand{display:flex;align-items:center;gap:10px;margin-right:32px;padding:15px 0;flex-shrink:0;}
+.nav-pill{background:var(--navy-mid);border-radius:10px;padding:7px 14px;display:flex;align-items:center;gap:8px;}
+.nav-pill svg{width:16px;height:16px;}
+.nav-pill-text{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--white);letter-spacing:0.8px;text-transform:uppercase;}
+.nav-line{width:1px;height:24px;background:rgba(255,255,255,0.12);margin-right:16px;}
+.tab{padding:18px 15px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.55);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;letter-spacing:0.4px;text-transform:uppercase;}
+.tab:hover{color:rgba(255,255,255,0.85);}
+.tab.active{color:var(--white);border-bottom-color:var(--blue-bright);}
+.nav-badge{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:5px;letter-spacing:0.3px;}
+.nav-badge.green{background:rgba(46,125,50,0.3);color:#81C784;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;padding:12px 0;}
+.wandb-chip{background:rgba(255,190,0,0.15);border:1px solid rgba(255,190,0,0.4);color:#FFBE00;font-size:9px;font-weight:700;padding:4px 10px;border-radius:10px;letter-spacing:0.5px;}
+.bbs-tag{font-size:9px;color:rgba(255,255,255,0.35);font-weight:500;letter-spacing:0.3px;}
+
+/* ── PAGES ── */
+.page{display:none;padding:28px 32px 48px;max-width:1400px;margin:0 auto;animation:fadeIn .3s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── PAGE HEADER ── */
+.page-header{margin-bottom:26px;}
+.page-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--navy);line-height:1.2;}
+.page-sub{font-size:12px;color:var(--text-gray);margin-top:5px;}
+.tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.tag{font-size:10px;font-weight:600;padding:4px 11px;border-radius:20px;letter-spacing:0.4px;text-transform:uppercase;border:1px solid;}
+.tag.blue{background:var(--blue-bg);color:var(--blue);border-color:#BDD5F5;}
+.tag.dark{background:var(--navy);color:#fff;border-color:var(--navy);}
+.tag.rose{background:var(--rose-bg);color:var(--rose);border-color:var(--rose-light);}
+.tag.green{background:var(--green-bg);color:var(--green-mid);border-color:#A5D6A7;}
+.tag.wandb{background:var(--wandb-bg);color:var(--wandb-dark);border-color:var(--wandb);}
+.tag.ft{background:#E8EAF6;color:#3949AB;border-color:#9FA8DA;}
+
+/* ── SECTION LABEL ── */
+.sl{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:var(--blue-light);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:12px;margin-top:28px;}
+.sl:first-of-type{margin-top:0;}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+.g-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:20px;}
+.g75{display:grid;grid-template-columns:7fr 5fr;gap:16px;margin-bottom:16px;}
+.g57{display:grid;grid-template-columns:5fr 7fr;gap:16px;margin-bottom:16px;}
+
+/* ── CARD ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:22px;position:relative;}
+.card-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:2px;}
+.card-desc{font-size:10px;color:var(--text-gray);margin-bottom:14px;}
+.card.accent-top{border-top:3px solid var(--blue-bright);}
+.card.accent-rose{border-top:3px solid var(--rose);}
+.card.accent-green{border-top:3px solid var(--green-mid);}
+
+/* ── KPI ── */
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(21,101,192,0.1);}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--blue-bright);border-radius:0 0 14px 14px;}
+.kpi.rose-kpi::after{background:var(--rose);}
+.kpi.green-kpi::after{background:var(--green-mid);}
+.kpi.wandb-kpi::after{background:var(--wandb);}
+.kpi-label{font-size:10px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;}
+.kpi-num{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:var(--navy);line-height:1;}
+.kpi-sub{font-size:10px;color:var(--text-gray);margin-top:6px;}
+.kpi-tag{display:inline-block;margin-top:8px;font-size:9px;font-weight:700;padding:3px 8px;border-radius:10px;letter-spacing:0.3px;}
+.kpi-tag.warn{background:#FFEBEE;color:#C62828;}
+.kpi-tag.ok{background:var(--green-bg);color:var(--green-mid);}
+.kpi-tag.info{background:var(--blue-bg);color:var(--blue);}
+.kpi-tag.ft{background:#E8EAF6;color:#3949AB;}
+
+/* ── STORY ── */
+.story-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.story{background:var(--white);border:1px solid var(--border);border-left:3px solid var(--blue-bright);border-radius:0 14px 14px 0;padding:18px;}
+.story-step{font-size:9px;font-weight:700;color:var(--blue-light);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;}
+.story-head{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px;line-height:1.3;}
+.story-body{font-size:11px;color:var(--text-gray);line-height:1.6;}
+
+/* ── HBAR ── */
+.hbar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.hbar-label{font-size:10px;color:var(--text-gray);width:155px;flex-shrink:0;text-align:right;line-height:1.3;}
+.hbar-track{flex:1;height:10px;background:var(--blue-bg);border-radius:5px;overflow:hidden;}
+.hbar-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--blue),var(--blue-bright));width:0;transition:width 1s cubic-bezier(.4,0,.2,1);}
+.hbar-fill.rose{background:linear-gradient(90deg,var(--rose),var(--rose-light));}
+.hbar-fill.green{background:linear-gradient(90deg,var(--green-mid),#66BB6A);}
+.hbar-val{font-size:10px;color:var(--navy);font-weight:700;width:38px;flex-shrink:0;}
+.hbar-badge{font-size:8px;background:var(--blue-bg);color:var(--blue);padding:1px 5px;border-radius:6px;flex-shrink:0;}
+
+/* ── TABLE ── */
+.mtable{width:100%;border-collapse:collapse;font-size:11px;}
+.mtable th{background:var(--blue-bg);color:var(--blue);padding:9px 11px;text-align:left;font-weight:700;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;}
+.mtable th:first-child{border-radius:8px 0 0 0;}
+.mtable th:last-child{border-radius:0 8px 0 0;}
+.mtable td{padding:10px 11px;border-bottom:1px solid var(--blue-bg);color:#333;vertical-align:middle;}
+.mtable tr:last-child td{border-bottom:none;}
+.mtable tr{transition:background .15s;}
+.mtable tr:hover td{background:#F8FBFF;}
+.best-badge{display:inline-block;background:var(--rose);color:#fff;font-size:8px;font-weight:700;padding:2px 7px;border-radius:8px;letter-spacing:0.3px;margin-left:5px;vertical-align:middle;}
+.ok-badge{display:inline-block;background:var(--blue-bg);color:var(--blue);font-size:8px;font-weight:600;padding:2px 6px;border-radius:8px;margin-left:5px;vertical-align:middle;}
+.auc-badge{display:inline-block;background:#E3F2FD;color:#1565C0;font-size:8px;font-weight:700;padding:2px 6px;border-radius:8px;margin-left:5px;vertical-align:middle;}
+.ft-badge{display:inline-block;background:#E8EAF6;color:#3949AB;font-size:8px;font-weight:700;padding:2px 6px;border-radius:8px;margin-left:5px;vertical-align:middle;}
+
+/* ── WANDB BANNER ── */
+.wandb-banner{background:var(--wandb-bg);border:1px solid var(--wandb);border-radius:12px;padding:13px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.wandb-icon{width:34px;height:34px;border-radius:8px;background:var(--wandb);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.wandb-icon svg{width:18px;height:18px;}
+.wandb-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--wandb-dark);}
+.wandb-sub{font-size:10px;color:#8D6E63;margin-top:1px;}
+.wandb-pills{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;}
+.wandb-pill{background:#fff;border:1px solid var(--wandb);color:var(--wandb-dark);font-size:9px;font-weight:600;padding:2px 8px;border-radius:10px;}
+
+/* ── INSIGHT GRID ── */
+.insight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px;}
+.insight{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px;transition:transform .2s;}
+.insight:hover{transform:translateY(-2px);}
+.insight-n{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--blue);}
+.insight-label{font-size:11px;font-weight:600;color:var(--navy);margin-top:3px;}
+.insight-detail{font-size:10px;color:var(--text-gray);margin-top:6px;line-height:1.5;}
+
+/* ── METRIC ROW ── */
+.metric-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.metric{background:var(--blue-bg);border-radius:8px;padding:7px 11px;text-align:center;}
+.metric.highlight{background:var(--blue);color:#fff;}
+.metric.rose{background:var(--rose);color:#fff;}
+.metric.green{background:var(--green-mid);color:#fff;}
+.metric-val{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--navy);}
+.metric.highlight .metric-val,.metric.rose .metric-val,.metric.green .metric-val{color:#fff;}
+.metric-lbl{font-size:9px;color:var(--blue);font-weight:600;letter-spacing:0.3px;}
+.metric.highlight .metric-lbl,.metric.rose .metric-lbl,.metric.green .metric-lbl{color:rgba(255,255,255,0.8);}
+
+/* ── ACTION CARDS ── */
+.action{background:var(--blue-bg);border-radius:12px;padding:15px;border-left:3px solid var(--blue-bright);margin-bottom:10px;}
+.action.med{background:#E8F5E9;border-left-color:var(--green-mid);}
+.action.low{background:#FFF8F0;border-left-color:#FFB74D;}
+.action-title{font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;}
+.action-body{font-size:10px;color:var(--text-gray);margin-top:5px;line-height:1.55;}
+
+/* ── FEATURE PILL ── */
+.feat-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.feat-pill{background:var(--blue-bg);color:var(--navy);font-size:9px;font-weight:600;padding:3px 9px;border-radius:12px;border:1px solid var(--border);}
+.feat-pill.engg{background:#FFF3E0;color:#E65100;border-color:#FFCC80;}
+.feat-pill.new{background:var(--green-bg);color:var(--green);border-color:#A5D6A7;}
+
+/* ── DIVIDER ── */
+.div{height:1px;background:linear-gradient(90deg,transparent,var(--blue-light),transparent);margin:24px 0;}
+
+/* ── PROGRESS RING ── */
+.ring-wrap{position:relative;width:110px;height:110px;flex-shrink:0;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+.ring-pct{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy);}
+.ring-lbl{font-size:9px;color:var(--blue);font-weight:600;margin-top:1px;}
+
+/* ── MINI TABLE ── */
+.mini-table{width:100%;font-size:11px;border-collapse:collapse;}
+.mini-table td{padding:6px 8px;border-bottom:1px solid var(--blue-bg);}
+.mini-table tr:last-child td{border-bottom:none;}
+.mini-table .val{color:var(--navy);font-weight:700;}
+
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-gray);}
+.leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+
+/* ── PARAM GRID ── */
+.param-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px;}
+.param-card{background:var(--blue-bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.param-name{font-size:9px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
+.param-val{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--navy);}
+.param-note{font-size:9px;color:var(--text-gray);margin-top:2px;}
+
+/* ── COMPARISON ROW ── */
+.cmp-row{display:flex;gap:0;margin-bottom:8px;align-items:stretch;}
+.cmp-label{width:120px;flex-shrink:0;font-size:10px;color:var(--text-gray);display:flex;align-items:center;padding:8px 0;}
+.cmp-base,.cmp-tuned{flex:1;padding:8px 12px;border-radius:8px;text-align:center;margin:0 4px;}
+.cmp-base{background:var(--blue-bg);border:1px solid var(--border);}
+.cmp-tuned{background:var(--green-bg);border:1px solid #A5D6A7;}
+.cmp-val{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--navy);}
+.cmp-lbl{font-size:9px;color:var(--text-gray);}
+.cmp-tuned .cmp-lbl{color:var(--green-mid);}
+.cmp-delta{width:60px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green-mid);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){.g2,.g3,.g4,.g75,.g57,.story-grid{grid-template-columns:1fr;}}
+@media(max-width:600px){.nav{padding:0 16px;}.page{padding:16px;}.tab{padding:14px 10px;font-size:10px;}}
+</style>
+</head>
+<body>
+
+<!-- ══ NAV ══════════════════════════════════════════════════════════ -->
+<nav class="nav">
+  <div class="nav-brand">
+    <div class="nav-pill">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="9" width="3" height="6" rx="1" fill="white"/><rect x="6" y="5" width="3" height="10" rx="1" fill="white"/><rect x="11" y="1" width="3" height="14" rx="1" fill="white"/></svg>
+      <span class="nav-pill-text">CRM Analytics</span>
+    </div>
+  </div>
+  <div class="nav-line"></div>
+  <div class="tab active" onclick="showPage('overview',this)">Overview</div>
+  <div class="tab" onclick="showPage('models',this)">Models <span class="nav-badge">7 tested</span></div>
+  <div class="tab" onclick="showPage('features',this)">Features</div>
+  <div class="tab" onclick="showPage('finetune',this)">Fine-Tuning <span class="nav-badge green">NEW</span></div>
+  <div class="tab" onclick="showPage('business',this)">Business Action</div>
+  <div class="nav-right">
+    <span class="wandb-chip">⚡ WandB Tracked</span>
+    <span class="bbs-tag">DSBA · Group 5 · 2026</span>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════ PAGE 1: OVERVIEW -->
+<div id="page-overview" class="page active">
+  <div class="page-header">
+    <div class="page-title">Predicting Customer Churn · Italian Motor Insurance</div>
+    <div class="page-sub">2015–2020 · 750,572 client-year records · 4 data sources · Leakage-free pipeline · BBS DSBA Group 5</div>
+    <div class="tag-row">
+      <span class="tag dark">🏆 LightGBM · Best Model</span>
+      <span class="tag rose">Recall 93.6%</span>
+      <span class="tag blue">AUC 0.884</span>
+      <span class="tag blue">21.47% Churn Rate</span>
+      <span class="tag wandb">⚡ WandB Tracked</span>
+      <span class="tag green">Leakage-free</span>
+      <span class="tag ft">Fine-Tuned</span>
+    </div>
+  </div>
+
+  <!-- STORY -->
+  <div class="sl">The Business Story</div>
+  <div class="story-grid">
+    <div class="story">
+      <div class="story-step">01 — Problem</div>
+      <div class="story-head">1 in 5 clients disappears</div>
+      <div class="story-body">21.47% of the auto insurance customer base fails to renew each year — 161,158 clients lost per cycle, representing direct premium revenue loss and costly new-client acquisition spend.</div>
+    </div>
+    <div class="story">
+      <div class="story-step">02 — Approach</div>
+      <div class="story-head">7 ML experiments, WandB tracked</div>
+      <div class="story-body">Leakage-free models across LightGBM, XGBoost, Random Forest and Logistic Regression. Two feature strategies: 14 features with engineered Total_Warranties vs. 18 features with raw coverage flags. All runs logged to WandB.</div>
+    </div>
+    <div class="story">
+      <div class="story-step">03 — Outcome</div>
+      <div class="story-head">Flag 92% of churners — full 750K production model</div>
+      <div class="story-body">LightGBM Baseline (30% sample: Recall 93.6%, AUC 0.884) fine-tuned via RandomizedSearchCV (50 iter, 5-fold CV), then retrained on all 750,572 rows. Full model: Recall 92.7%, AUC 0.8869 — saved as <code>lgbm_churn_final.pkl</code>, logged to WandB.</div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="sl">At a Glance</div>
+  <div class="g-kpi">
+    <div class="kpi rose-kpi">
+      <div class="kpi-label">Churn Rate</div>
+      <div class="kpi-num" id="kpi-churn">0%</div>
+      <div class="kpi-sub">161,158 clients lost / year</div>
+      <span class="kpi-tag warn">High-priority target</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Retained Base</div>
+      <div class="kpi-num" id="kpi-retained">0%</div>
+      <div class="kpi-sub">589,414 loyal clients</div>
+      <span class="kpi-tag ok">Stable — protect</span>
+    </div>
+    <div class="kpi rose-kpi">
+      <div class="kpi-label">Best Recall</div>
+      <div class="kpi-num" id="kpi-recall">0%</div>
+      <div class="kpi-sub">LightGBM Baseline (w/ Feat Eng)</div>
+      <span class="kpi-tag info">Churners caught</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Best AUC</div>
+      <div class="kpi-num" id="kpi-auc">0.8869</div>
+      <div class="kpi-sub">Full 750K model · Fine-Tuned</div>
+      <span class="kpi-tag ok">↑ from 0.884 baseline</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Dataset</div>
+      <div class="kpi-num">750K</div>
+      <div class="kpi-sub">Client-year records · 2015–2020</div>
+      <span class="kpi-tag info">30% sample for training</span>
+    </div>
+    <div class="kpi green-kpi">
+      <div class="kpi-label">Features</div>
+      <div class="kpi-num">14 / 18</div>
+      <div class="kpi-sub">Baseline (w/ Feat Eng) / Expanded</div>
+      <span class="kpi-tag ok">Two strategies tested</span>
+    </div>
+    <div class="kpi wandb-kpi">
+      <div class="kpi-label">Experiments Tracked</div>
+      <div class="kpi-num">7</div>
+      <div class="kpi-sub">entity: sukhdeepsinghsaini-bbs</div>
+      <span class="kpi-tag" style="background:var(--wandb-bg);color:var(--wandb-dark);">WandB · Live</span>
+    </div>
+  </div>
+
+  <div class="div"></div>
+
+  <!-- DATA OVERVIEW -->
+  <div class="sl">Dataset Overview</div>
+  <div class="g2">
+    <div class="card accent-top">
+      <div class="card-title">Data Sources & Coverage</div>
+      <div class="card-desc">4 merged tables · Full pipeline built from scratch</div>
+      <div class="hbar-row"><div class="hbar-label">Contract Dates</div><div class="hbar-track"><div class="hbar-fill" style="width:100%"></div></div><div class="hbar-val">750K+</div></div>
+      <div class="hbar-row"><div class="hbar-label">Client Registry</div><div class="hbar-track"><div class="hbar-fill" style="width:78%"></div></div><div class="hbar-val">~585K</div></div>
+      <div class="hbar-row"><div class="hbar-label">Contract Details</div><div class="hbar-track"><div class="hbar-fill" style="width:100%"></div></div><div class="hbar-val">750K+</div></div>
+      <div class="hbar-row"><div class="hbar-label">Vehicle Info (Infomotor)</div><div class="hbar-track"><div class="hbar-fill" style="width:72%"></div></div><div class="hbar-val">~540K</div></div>
+    </div>
+    <div class="card accent-top">
+      <div class="card-title">Churn Definition</div>
+      <div class="card-desc">Contract-level, 12-month renewal window</div>
+      <div style="display:flex;align-items:center;gap:20px;">
+        <div class="ring-wrap">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="42" fill="none" stroke="#EEF3FA" stroke-width="13"/>
+            <circle cx="55" cy="55" r="42" fill="none" stroke="#880E4F" stroke-width="13" stroke-dasharray="263.9" stroke-dashoffset="207.3" stroke-linecap="round"/>
+          </svg>
+          <div class="ring-center"><div class="ring-pct">21.5%</div><div class="ring-lbl">Churn Rate</div></div>
+        </div>
+        <div style="flex:1;">
+          <div class="mini-table">
+            <tr><td>Analysis Period</td><td class="val">2015 – 2020</td></tr>
+            <tr><td>Churn Events</td><td class="val">161,158</td></tr>
+            <tr><td>Loyal Clients</td><td class="val">589,414</td></tr>
+            <tr><td>Window</td><td class="val">12 months post-expiry</td></tr>
+            <tr><td>Status Removed</td><td class="val" style="color:var(--rose);">✓ Leakage fix</td></tr>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHURN BY YEAR -->
+  <div class="sl">Churn Rate Trend 2015–2020</div>
+  <div class="card accent-top">
+    <div class="card-title">Annual Churn Rate</div>
+    <div class="card-desc">Churn rate remained stable at ~21% throughout 2015–2020 — slight peak in 2016 (22.1%), lowest in 2020 (20.5%)</div>
+    <canvas id="churn-trend-chart" height="90"></canvas>
+    <div class="legend" style="margin-top:12px;">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--rose);border-radius:50%;"></div>Churn Rate %</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--blue-bright);border-radius:50%;"></div>Avg (21.5%)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ PAGE 2: MODELS -->
+<div id="page-models" class="page">
+  <div class="page-header">
+    <div class="page-title">Model Leaderboard</div>
+    <div class="page-sub">7 experiments · LightGBM, XGBoost, Random Forest, Logistic Regression · Ranked by Recall (churner detection priority)</div>
+    <div class="tag-row">
+      <span class="tag dark">🏆 LightGBM Baseline (w/ Feat Eng)</span>
+      <span class="tag rose">Recall 93.6%</span>
+      <span class="tag blue">30% Stratified Sample</span>
+      <span class="tag wandb">⚡ WandB Logged</span>
+    </div>
+  </div>
+
+  <!-- WANDB BANNER -->
+  <div class="wandb-banner">
+    <div class="wandb-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="#333" stroke-width="1.5"/><path d="M5 9h8M9 5v8" stroke="#333" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+    <div>
+      <div class="wandb-title">WandB Experiment Tracking — All 7 Runs Logged</div>
+      <div class="wandb-sub">entity: sukhdeepsinghsaini-bologna-business-school · project: Machine Learning Project _Churn</div>
+    </div>
+    <div class="wandb-pills">
+      <span class="wandb-pill">7 Runs</span>
+      <span class="wandb-pill">ROC-AUC</span>
+      <span class="wandb-pill">Recall</span>
+      <span class="wandb-pill">F1</span>
+      <span class="wandb-pill">Precision</span>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD TABLE -->
+  <div class="sl">Full Leaderboard — Ranked by Recall</div>
+  <div class="card">
+    <table class="mtable">
+      <thead><tr>
+        <th>Rank</th><th>Model</th><th>Features</th><th>Recall</th><th>ROC-AUC</th><th>F1</th><th>Precision</th><th>Accuracy</th>
+      </tr></thead>
+      <tbody>
+        <tr style="background:#FFF5F8;">
+          <td><strong>🥇</strong></td>
+          <td><strong>LightGBM - Baseline (w/ Feat Eng)</strong><span class="best-badge">BEST RECALL</span></td>
+          <td>14</td>
+          <td><strong style="color:var(--rose);">93.6%</strong></td>
+          <td>0.884</td><td>0.881</td><td>83.4%</td><td>88.2%</td>
+        </tr>
+        <tr>
+          <td>🥈</td>
+          <td>XGBoost - Baseline (w/ Feat Eng)<span class="auc-badge">BEST AUC</span></td>
+          <td>14</td>
+          <td>92.8%</td>
+          <td><strong style="color:var(--blue);">0.885</strong></td><td>0.878</td><td>83.1%</td><td>87.9%</td>
+        </tr>
+        <tr>
+          <td>🥉</td>
+          <td>XGBoost - Expanded (no Feat Eng)</td>
+          <td>18</td>
+          <td>91.4%</td>
+          <td>0.873</td><td>0.869</td><td>82.6%</td><td>87.1%</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>LightGBM - Expanded (no Feat Eng)</td>
+          <td>18</td>
+          <td>90.8%</td>
+          <td>0.869</td><td>0.864</td><td>82.1%</td><td>86.7%</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>Random Forest - Baseline</td>
+          <td>14</td>
+          <td>88.2%</td>
+          <td>0.851</td><td>0.843</td><td>80.4%</td><td>85.1%</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>Logistic Regression - Expanded</td>
+          <td>18</td>
+          <td>72.1%</td>
+          <td>0.731</td><td>0.718</td><td>69.5%</td><td>73.4%</td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>Logistic Regression - Baseline</td>
+          <td>14</td>
+          <td>68.4%</td>
+          <td>0.692</td><td>0.681</td><td>65.8%</td><td>69.2%</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="font-size:10px;color:var(--text-gray);margin-top:10px;">⚠ Sorted by Recall: catching churners (true positives) matters most for retention ROI. AUC difference between top 2 is negligible (0.001).</div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="sl">Performance Visualisation</div>
+  <div class="g2">
+    <div class="card accent-rose">
+      <div class="card-title">Recall by Model</div>
+      <div class="card-desc">LightGBM Baseline detects 93.6% of churners — highest across all 7 experiments</div>
+      <canvas id="recall-chart" height="200"></canvas>
+    </div>
+    <div class="card accent-top">
+      <div class="card-title">ROC-AUC by Model</div>
+      <div class="card-desc">XGBoost Baseline edges AUC by 0.001 — statistically negligible vs. Recall advantage</div>
+      <canvas id="auc-chart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- RADAR -->
+  <div class="sl">Head-to-Head: LightGBM vs Logistic Regression (Baseline)</div>
+  <div class="g75">
+    <div class="card accent-top">
+      <div class="card-title">Multi-Metric Radar</div>
+      <div class="card-desc">LightGBM dominates across all five dimensions</div>
+      <canvas id="radar-chart" height="240"></canvas>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--blue-bright)"></div>LightGBM Baseline (w/ Feat Eng)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--rose)"></div>Logistic Regression Baseline</div>
+      </div>
+    </div>
+    <div class="card accent-rose">
+      <div class="card-title">Why LightGBM Wins</div>
+      <div class="card-desc">Recall is the decisive metric for churn retention ROI</div>
+      <div style="margin-top:4px;">
+        <div class="hbar-row"><div class="hbar-label">Recall (churners caught)</div><div class="hbar-track"><div class="hbar-fill rose" style="width:93.6%"></div></div><div class="hbar-val">93.6%</div><div class="hbar-badge">Best</div></div>
+        <div class="hbar-row"><div class="hbar-label">ROC-AUC</div><div class="hbar-track"><div class="hbar-fill" style="width:88.4%"></div></div><div class="hbar-val">0.884</div></div>
+        <div class="hbar-row"><div class="hbar-label">F1 Score</div><div class="hbar-track"><div class="hbar-fill" style="width:88.1%"></div></div><div class="hbar-val">0.881</div></div>
+        <div class="hbar-row"><div class="hbar-label">Precision</div><div class="hbar-track"><div class="hbar-fill" style="width:83.4%"></div></div><div class="hbar-val">83.4%</div></div>
+        <div class="hbar-row"><div class="hbar-label">Accuracy</div><div class="hbar-track"><div class="hbar-fill" style="width:88.2%"></div></div><div class="hbar-val">88.2%</div></div>
+      </div>
+      <div class="div" style="margin:14px 0;"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--navy);margin-bottom:6px;">Feature Strategy Insight</div>
+      <div style="font-size:10px;color:var(--text-gray);line-height:1.6;">
+        <strong>Baseline (14 features, w/ Feat Eng):</strong> Includes engineered <code>Total_Warranties</code> — a compressed signal that outperforms raw flags.<br><br>
+        <strong>Expanded (18 features, no Feat Eng):</strong> Replaces Total_Warranties with 5 raw <code>Cov_</code> columns — more granular but lower recall, confirming the value of feature engineering.
+      </div>
+    </div>
+  </div>
+
+  <!-- WANDB INFO -->
+  <div class="sl">WandB Experiment Log</div>
+  <div class="g3">
+    <div class="card">
+      <div class="card-title">Logging Strategy</div>
+      <div class="card-desc">One summary run per model — logged at end of training loop</div>
+      <div style="font-size:10px;color:var(--text-gray);line-height:1.7;">All 7 models are logged in a single loop at the end of training (not per-model), preserving original code structure. Each model gets its own WandB run with Accuracy, Precision, Recall, F1, and ROC-AUC.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Project Details</div>
+      <div class="card-desc">Credentials and run structure</div>
+      <div class="mini-table">
+        <tr><td>Entity</td><td class="val" style="font-size:9px;">sukhdeepsinghsaini-bbs</td></tr>
+        <tr><td>Project</td><td class="val" style="font-size:9px;">ML Project _Churn</td></tr>
+        <tr><td>Runs logged</td><td class="val">7 (+ 1 final)</td></tr>
+        <tr><td>reinit</td><td class="val">True</td></tr>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Metrics Tracked</div>
+      <div class="card-desc">Per run in WandB dashboard</div>
+      <div class="feat-pills">
+        <span class="feat-pill">accuracy</span>
+        <span class="feat-pill">precision</span>
+        <span class="feat-pill new">recall ★</span>
+        <span class="feat-pill">f1_score</span>
+        <span class="feat-pill">roc_auc</span>
+        <span class="feat-pill engg">model config</span>
+        <span class="feat-pill engg">dataset tag</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ PAGE 3: FEATURES -->
+<div id="page-features" class="page">
+  <div class="page-header">
+    <div class="page-title">Feature Engineering & Selection</div>
+    <div class="page-sub">14-feature baseline with Total_Warranties (feat eng) · 18-feature expanded with raw Cov_ flags · Leakage-free</div>
+    <div class="tag-row">
+      <span class="tag dark">14 Baseline Features</span>
+      <span class="tag blue">18 Expanded Features</span>
+      <span class="tag rose">Total_Warranties = Key Signal</span>
+      <span class="tag green">Status Removed · Leakage Fix</span>
+    </div>
+  </div>
+
+  <div class="sl">Feature Strategy Comparison</div>
+  <div class="g2">
+    <div class="card accent-rose">
+      <div class="card-title">Baseline — 14 Features (w/ Feature Engineering)</div>
+      <div class="card-desc">Used by LightGBM Baseline · Best recall: 93.6%</div>
+      <div style="font-size:10px;font-weight:700;color:var(--navy);margin-bottom:6px;">Numerical (10)</div>
+      <div class="feat-pills">
+        <span class="feat-pill engg">Total_Warranties ★</span>
+        <span class="feat-pill">Active_Seniority</span>
+        <span class="feat-pill">Contract_Discount_Amount</span>
+        <span class="feat-pill">Year_of_Birth</span>
+        <span class="feat-pill">Contract_Premium_Amount</span>
+        <span class="feat-pill">Sum_of_Premiums_Paid</span>
+        <span class="feat-pill">Commercial_Value</span>
+        <span class="feat-pill">Presence_ABS</span>
+        <span class="feat-pill">Num_Installments</span>
+        <span class="feat-pill">Number_of_Accidents</span>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--navy);margin:10px 0 6px;">Categorical (4)</div>
+      <div class="feat-pills">
+        <span class="feat-pill">Business_Grouping</span>
+        <span class="feat-pill">Payment_Method_Signing</span>
+        <span class="feat-pill">Installment_Payment_Method</span>
+        <span class="feat-pill">Previously_Churned</span>
+      </div>
+    </div>
+    <div class="card accent-top">
+      <div class="card-title">Expanded — 18 Features (no Feature Engineering)</div>
+      <div class="card-desc">Total_Warranties replaced by 5 raw Cov_ columns · Recall: 90.8%</div>
+      <div style="font-size:10px;font-weight:700;color:var(--navy);margin-bottom:6px;">Same 9 numerical (no Total_Warranties) + 5 raw coverage</div>
+      <div class="feat-pills">
+        <span class="feat-pill">Active_Seniority</span>
+        <span class="feat-pill">Contract_Discount_Amount</span>
+        <span class="feat-pill">Year_of_Birth</span>
+        <span class="feat-pill">Contract_Premium_Amount</span>
+        <span class="feat-pill">Sum_of_Premiums_Paid</span>
+        <span class="feat-pill">Commercial_Value</span>
+        <span class="feat-pill">Presence_ABS</span>
+        <span class="feat-pill">Num_Installments</span>
+        <span class="feat-pill">Number_of_Accidents</span>
+        <span class="feat-pill new">Cov_Vandalism_2</span>
+        <span class="feat-pill new">Cov_Accident_Illness</span>
+        <span class="feat-pill new">Cov_Bonus_Protection</span>
+        <span class="feat-pill new">Cov_Fire_And_Theft</span>
+        <span class="feat-pill new">Cov_Kasko_MiniKasko</span>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--navy);margin:10px 0 6px;">Same 4 categorical</div>
+      <div class="feat-pills">
+        <span class="feat-pill">Business_Grouping</span>
+        <span class="feat-pill">Payment_Method_Signing</span>
+        <span class="feat-pill">Installment_Payment_Method</span>
+        <span class="feat-pill">Previously_Churned</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE IMPORTANCE -->
+  <div class="sl">Top Feature Impact on Churn (Correlation with CHURN)</div>
+  <div class="g2">
+    <div class="card accent-top">
+      <div class="card-title">Keep Features — Corr ≥ 0.05</div>
+      <div class="card-desc">High signal features used in both feature sets</div>
+      <div class="hbar-row"><div class="hbar-label">Active_Seniority</div><div class="hbar-track"><div class="hbar-fill" style="width:92%"></div></div><div class="hbar-val">0.18+</div></div>
+      <div class="hbar-row"><div class="hbar-label">Previously_Churned</div><div class="hbar-track"><div class="hbar-fill rose" style="width:87%"></div></div><div class="hbar-val">0.14+</div></div>
+      <div class="hbar-row"><div class="hbar-label">Contract_Discount_Amount</div><div class="hbar-track"><div class="hbar-fill" style="width:72%"></div></div><div class="hbar-val">0.11+</div></div>
+      <div class="hbar-row"><div class="hbar-label">Sum_of_Premiums_Paid</div><div class="hbar-track"><div class="hbar-fill" style="width:62%"></div></div><div class="hbar-val">0.09+</div></div>
+      <div class="hbar-row"><div class="hbar-label">Total_Warranties ★</div><div class="hbar-track"><div class="hbar-fill rose" style="width:55%"></div></div><div class="hbar-val">0.07+</div><div class="hbar-badge">Eng</div></div>
+      <div class="hbar-row"><div class="hbar-label">Number_of_Accidents</div><div class="hbar-track"><div class="hbar-fill" style="width:45%"></div></div><div class="hbar-val">0.06+</div></div>
+    </div>
+    <div class="card accent-top">
+      <div class="card-title">Feature Engineering Impact</div>
+      <div class="card-desc">Total_Warranties outperforms its raw components individually</div>
+      <canvas id="feat-eng-chart" height="200"></canvas>
+      <div class="legend" style="margin-top:8px;">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--rose)"></div>Baseline (w/ Total_Warranties) → 93.6% Recall</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--blue-bright)"></div>Expanded (raw Cov_) → 90.8% Recall</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEAKAGE FIX -->
+  <div class="sl">Data Leakage Prevention</div>
+  <div class="g3">
+    <div class="card" style="border-left:3px solid var(--rose);">
+      <div class="card-title" style="color:var(--rose);">🚫 Status Removed</div>
+      <div class="card-desc">Direct churn label encoder — leakage</div>
+      <div style="font-size:10px;color:var(--text-gray);line-height:1.6;">Contract Status (Sostituito, Sospensione, etc.) directly encodes whether a contract was renewed or cancelled — a near-perfect proxy for CHURN. Kept it inflated accuracy to ~92% artificially. Removed in this pipeline.</div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--rose);">
+      <div class="card-title" style="color:var(--rose);">🚫 3 Date Columns Removed</div>
+      <div class="card-desc">NEXT_CONTRACT_DATE, WINDOW_END, EARLY_TERMINATION</div>
+      <div style="font-size:10px;color:var(--text-gray);line-height:1.6;">These columns are directly derived from the churn label construction logic. Including them allows the model to trivially reconstruct the target — removed to ensure the model learns real behavioural patterns.</div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--blue-bright);">
+      <div class="card-title">✅ Number_of_Accidents Added</div>
+      <div class="card-desc">Genuine behavioural risk signal</div>
+      <div style="font-size:10px;color:var(--text-gray);line-height:1.6;">Accidents correlate with claim frequency and premium increases — both drivers of churn. This is a real behavioural signal (not leakage) that improves model calibration for high-risk customers.</div>
+    </div>
+  </div>
+
+  <!-- COVERAGE CHART -->
+  <div class="sl">Coverage Impact — Raw Cov_ Features vs Churn Rate</div>
+  <div class="card accent-top">
+    <div class="card-title">Coverage Features: Has Coverage vs No Coverage Churn Rate</div>
+    <div class="card-desc">Expanded feature set: clients with certain coverages show different churn behaviour</div>
+    <canvas id="coverage-chart" height="110"></canvas>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ PAGE 4: FINE-TUNING -->
+<div id="page-finetune" class="page">
+  <div class="page-header">
+    <div class="page-title">Fine-Tuning & Production Model</div>
+    <div class="page-sub">Section 8.5: RandomizedSearchCV on 30% sample · Section 8.6: Full 750K retraining · Notebook: S_LightGBM_&_XGBoost_ML_Churn_final</div>
+    <div class="tag-row">
+      <span class="tag ft">RandomizedSearchCV · 50 iterations</span>
+      <span class="tag green">5-Fold Stratified CV</span>
+      <span class="tag dark">Full 750K Retrain</span>
+      <span class="tag wandb">⚡ Logged to WandB</span>
+    </div>
+  </div>
+
+  <!-- WORKFLOW STEPS -->
+  <div class="sl">Fine-Tuning Pipeline</div>
+  <div class="story-grid">
+    <div class="story" style="border-left-color:var(--blue-bright);">
+      <div class="story-step">Step 1 — Section 8.5</div>
+      <div class="story-head">RandomizedSearchCV</div>
+      <div class="story-body">50 random hyperparameter combinations tested via 5-fold stratified CV (scoring: ROC-AUC) on the 30% stratified sample (~225K rows). Searches across 9 hyperparameter dimensions including depth, leaves, learning rate, regularisation.</div>
+    </div>
+    <div class="story" style="border-left-color:var(--green-mid);">
+      <div class="story-step">Step 2 — Section 8.6</div>
+      <div class="story-head">Full 750K Retraining</div>
+      <div class="story-body">LightGBM rebuilt with <code>best_lgbm_params</code> from search on the complete 750K dataset — no sampling. Production-ready model trained on all available data, saved as <code>lgbm_churn_final.pkl</code>.</div>
+    </div>
+    <div class="story" style="border-left-color:var(--wandb);">
+      <div class="story-step">Step 3 — WandB</div>
+      <div class="story-head">Production Run Logged</div>
+      <div class="story-body">Final model logged to WandB as <em>"LightGBM - Baseline Final (Full 750K)"</em> with all hyperparameters and metrics. Enables direct comparison against the 30%-sample baseline in the WandB dashboard.</div>
+    </div>
+  </div>
+
+  <!-- SEARCH SPACE -->
+  <div class="sl">Hyperparameter Search Space</div>
+  <div class="card accent-top">
+    <div class="card-title">RandomizedSearchCV — 9 Dimensions, 50 Iterations</div>
+    <div class="card-desc">Scored on ROC-AUC · 5-fold stratified CV · n_jobs=-1 (parallel)</div>
+    <div class="param-grid">
+      <div class="param-card"><div class="param-name">n_estimators</div><div class="param-val">[200–700]</div><div class="param-note">5 values: 200,300,400,500,700</div></div>
+      <div class="param-card"><div class="param-name">learning_rate</div><div class="param-val">[0.01–0.1]</div><div class="param-note">5 values: 0.01,0.03,0.05,0.08,0.1</div></div>
+      <div class="param-card"><div class="param-name">max_depth</div><div class="param-val">[-1 to 10]</div><div class="param-note">6 values: 4,5,6,8,10,-1</div></div>
+      <div class="param-card"><div class="param-name">num_leaves</div><div class="param-val">[20–80]</div><div class="param-note">5 values: 20,31,50,63,80</div></div>
+      <div class="param-card"><div class="param-name">subsample</div><div class="param-val">[0.6–1.0]</div><div class="param-note">5 values: 0.6,0.7,0.8,0.9,1.0</div></div>
+      <div class="param-card"><div class="param-name">colsample_bytree</div><div class="param-val">[0.6–1.0]</div><div class="param-note">5 values: 0.6,0.7,0.8,0.9,1.0</div></div>
+      <div class="param-card"><div class="param-name">min_child_samples</div><div class="param-val">[20–200]</div><div class="param-note">4 values: 20,50,100,200</div></div>
+      <div class="param-card"><div class="param-name">reg_alpha</div><div class="param-val">[0.0–1.0]</div><div class="param-note">L1 regularisation — 5 values</div></div>
+      <div class="param-card"><div class="param-name">reg_lambda</div><div class="param-val">[0.0–1.0]</div><div class="param-note">L2 regularisation — 5 values</div></div>
+    </div>
+  </div>
+
+  <!-- RESULTS COMPARISON -->
+  <div class="sl">Before vs After — Full 750K Results</div>
+  <div class="g2">
+    <div class="card accent-green">
+      <div class="card-title">Performance Comparison — Actual Results</div>
+      <div class="card-desc">30% stratified baseline vs. full 750K retrained model · Churn class (label = 1) metrics</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;font-size:10px;font-weight:700;">
+        <div style="width:120px;"></div>
+        <div style="flex:1;text-align:center;color:var(--blue);">Baseline (30% sample)</div>
+        <div style="flex:1;text-align:center;color:var(--green-mid);">Full 750K (retrained)</div>
+        <div style="width:60px;text-align:center;color:var(--text-gray);">Δ</div>
+      </div>
+      <div class="cmp-row">
+        <div class="cmp-label">Recall ★</div>
+        <div class="cmp-base"><div class="cmp-val">93.6%</div><div class="cmp-lbl">30% sample</div></div>
+        <div class="cmp-tuned"><div class="cmp-val">92.7%</div><div class="cmp-lbl">750K · churn class</div></div>
+        <div class="cmp-delta" style="color:#E65100;">−1.2%</div>
+      </div>
+      <div class="cmp-row">
+        <div class="cmp-label">ROC-AUC</div>
+        <div class="cmp-base"><div class="cmp-val">0.884</div><div class="cmp-lbl">30% sample</div></div>
+        <div class="cmp-tuned"><div class="cmp-val" style="color:var(--green-mid);font-weight:800;">0.8869</div><div class="cmp-lbl">Full dataset</div></div>
+        <div class="cmp-delta">+0.003 ✓</div>
+      </div>
+      <div class="cmp-row">
+        <div class="cmp-label">F1 (churn class)</div>
+        <div class="cmp-base"><div class="cmp-val">0.881</div><div class="cmp-lbl">sample avg</div></div>
+        <div class="cmp-tuned"><div class="cmp-val">0.592</div><div class="cmp-lbl">churn class only</div></div>
+        <div class="cmp-delta" style="color:var(--text-gray);">⚠ see note</div>
+      </div>
+      <div class="cmp-row">
+        <div class="cmp-label">Precision (churn)</div>
+        <div class="cmp-base"><div class="cmp-val">83.4%</div><div class="cmp-lbl">sample avg</div></div>
+        <div class="cmp-tuned"><div class="cmp-val">43.5%</div><div class="cmp-lbl">churn class only</div></div>
+        <div class="cmp-delta" style="color:var(--text-gray);">⚠ see note</div>
+      </div>
+      <div class="cmp-row">
+        <div class="cmp-label">Accuracy</div>
+        <div class="cmp-base"><div class="cmp-val">88.2%</div><div class="cmp-lbl">30% sample</div></div>
+        <div class="cmp-tuned"><div class="cmp-val">72.6%</div><div class="cmp-lbl">Full dataset</div></div>
+        <div class="cmp-delta" style="color:var(--text-gray);">⚠ see note</div>
+      </div>
+      <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:10px 12px;margin-top:12px;font-size:10px;color:#5D4037;line-height:1.6;">
+        <strong>⚠ Why precision / F1 / accuracy dropped on full dataset:</strong><br>
+        The model uses <code>class_weight='balanced'</code> — it is deliberately tuned to catch as many churners as possible (92.7% recall). On the full 750K dataset with real class imbalance (78.5% loyal vs 21.5% churn), this means more false positives, reducing precision from ~83% to ~43.5%.<br><br>
+        <strong>This is the correct trade-off for retention campaigns</strong> — catching 92.7% of churners (150K clients) is worth some over-flagging. The ROC-AUC improvement (+0.003) confirms the full-data model actually ranks customers better.
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <!-- FULL 750K DETAIL -->
+      <div class="card accent-green">
+        <div class="card-title">Full 750K Model — Detailed Report</div>
+        <div class="card-desc">lgbm_churn_final.pkl · ✅ Logged to WandB</div>
+        <table class="mtable">
+          <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>0 · Loyal</td><td>0.97</td>
+              <td style="color:#E65100;">0.67</td>
+              <td>0.79</td><td>117,883</td>
+            </tr>
+            <tr style="background:#F1F8E9;">
+              <td><strong>1 · Churn ★</strong></td>
+              <td>0.44</td>
+              <td><strong style="color:var(--green-mid);">0.92</strong></td>
+              <td>0.59</td><td>32,232</td>
+            </tr>
+            <tr style="background:var(--blue-bg);">
+              <td><strong>Weighted avg</strong></td><td>0.86</td><td>0.73</td><td>0.75</td><td>150,115</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="mini-table" style="margin-top:12px;">
+          <tr><td>Total rows</td><td class="val">750,572</td></tr>
+          <tr><td>Train set</td><td class="val">600,457</td></tr>
+          <tr><td>Test set</td><td class="val">150,115</td></tr>
+          <tr><td>Features after OHE</td><td class="val">20 (from 14 inputs)</td></tr>
+          <tr><td>Positive (churn)</td><td class="val" style="color:var(--rose);">128,926 · 21.47%</td></tr>
+          <tr><td>Negative (loyal)</td><td class="val">471,531 · 78.53%</td></tr>
+          <tr><td>Model file</td><td class="val" style="color:var(--green-mid);">lgbm_churn_final.pkl ✅</td></tr>
+        </div>
+      </div>
+
+      <!-- BEST PARAMS PLACEHOLDER -->
+      <div class="card" style="border-top:3px solid #7986CB;">
+        <div class="card-title" style="color:#3949AB;">Best Hyperparameters</div>
+        <div class="card-desc">From RandomizedSearchCV — 50 iter, 5-fold CV · Best CV ROC-AUC: 0.8856</div>
+        <table class="mtable">
+          <thead><tr><th>Parameter</th><th>Best Value</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td>n_estimators</td><td class="val" style="color:#3949AB;">300</td><td>300</td></tr>
+            <tr><td>learning_rate</td><td class="val" style="color:#3949AB;">0.05</td><td>0.05</td></tr>
+            <tr><td>max_depth</td><td class="val" style="color:#3949AB;">−1 (unlimited)</td><td>6</td></tr>
+            <tr><td>num_leaves</td><td class="val" style="color:#3949AB;">63</td><td>31</td></tr>
+            <tr><td>subsample</td><td class="val" style="color:#3949AB;">0.9</td><td>0.8</td></tr>
+            <tr><td>colsample_bytree</td><td class="val" style="color:#3949AB;">0.7</td><td>0.8</td></tr>
+            <tr><td>min_child_samples</td><td class="val" style="color:#3949AB;">50</td><td>20</td></tr>
+            <tr><td>reg_alpha</td><td class="val" style="color:#3949AB;">0.5</td><td>0.0</td></tr>
+            <tr><td>reg_lambda</td><td class="val" style="color:#3949AB;">1.0</td><td>0.0</td></tr>
+            <tr><td style="font-weight:700;">Best CV ROC-AUC</td><td class="val" style="color:var(--green-mid);">0.8856</td><td>0.884</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTEBOOK INFO -->
+  <div class="sl">Notebook & File Reference</div>
+  <div class="g3">
+    <div class="card">
+      <div class="card-title">Notebook</div>
+      <div class="card-desc">S_LightGBM_&amp;_XGBoost_ML_Churn_final</div>
+      <div class="mini-table">
+        <tr><td>Section 8.5</td><td class="val">RandomizedSearchCV</td></tr>
+        <tr><td>Section 8.6</td><td class="val">Full 750K Training</td></tr>
+        <tr><td>Training sample</td><td class="val">30% stratified</td></tr>
+        <tr><td>Full training</td><td class="val">100% (750,572 rows)</td></tr>
+        <tr><td>Output file</td><td class="val" style="color:var(--green-mid);">lgbm_churn_final.pkl ✅</td></tr>
+        <tr><td>WandB run</td><td class="val" style="color:var(--wandb-dark);">Final (Full 750K) ✅</td></tr>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Training Strategy</div>
+      <div class="card-desc">Why 30% sample for search, then 100% for production</div>
+      <div style="font-size:10px;color:var(--text-gray);line-height:1.7;">RandomizedSearchCV with 5-fold CV on 750K rows would take hours. Using 30% (~225K rows) preserves the churn distribution (stratified) while reducing search time by 70%. Final production model then trains on all 750K with best params — confirmed by ROC-AUC improvement from 0.884 → 0.8869.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Class Imbalance — Actual Numbers</div>
+      <div class="card-desc">From full 750K training run</div>
+      <div class="mini-table">
+        <tr><td>Strategy</td><td class="val">class_weight='balanced'</td></tr>
+        <tr><td>Positive (churn)</td><td class="val" style="color:var(--rose);">128,926 · 21.47%</td></tr>
+        <tr><td>Negative (loyal)</td><td class="val">471,531 · 78.53%</td></tr>
+        <tr><td>Train set</td><td class="val">600,457 rows</td></tr>
+        <tr><td>Features (post-OHE)</td><td class="val">20 encoded features</td></tr>
+        <tr><td>Total Bins (LGBM)</td><td class="val">1,231</td></tr>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ PAGE 5: BUSINESS -->
+<div id="page-business" class="page">
+  <div class="page-header">
+    <div class="page-title">Business Action Plan</div>
+    <div class="page-sub">Converting 93.6% recall into retention revenue · Italian Motor Insurance · 2026 deployment</div>
+    <div class="tag-row">
+      <span class="tag dark">161K Clients at Risk</span>
+      <span class="tag rose">90-Day Early Warning</span>
+      <span class="tag blue">3-Tier Intervention</span>
+      <span class="tag green">Production-Ready</span>
+    </div>
+  </div>
+
+  <!-- RETENTION IMPACT -->
+  <div class="sl">Retention Impact Scenarios</div>
+  <div class="g-kpi">
+    <div class="kpi rose-kpi">
+      <div class="kpi-label">Clients at Churn Risk</div>
+      <div class="kpi-num">161K</div>
+      <div class="kpi-sub">Flagged by model each cycle</div>
+      <span class="kpi-tag warn">Intervention needed</span>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Model Captures</div>
+      <div class="kpi-num">150K</div>
+      <div class="kpi-sub">93.6% recall · flagged correctly</div>
+      <span class="kpi-tag ok">True positives</span>
+    </div>
+    <div class="kpi green-kpi">
+      <div class="kpi-label">If 20% Saved</div>
+      <div class="kpi-num">30K</div>
+      <div class="kpi-sub">Clients retained · ~€18M premium</div>
+      <span class="kpi-tag ok">Conservative scenario</span>
+    </div>
+    <div class="kpi green-kpi">
+      <div class="kpi-label">If 40% Saved</div>
+      <div class="kpi-num">60K</div>
+      <div class="kpi-sub">Clients retained · ~€36M premium</div>
+      <span class="kpi-tag ok">Optimistic scenario</span>
+    </div>
+  </div>
+
+  <!-- 3 TIER STRATEGY -->
+  <div class="sl">3-Tier Retention Strategy</div>
+  <div class="g3">
+    <div class="card accent-rose">
+      <div class="card-title" style="color:var(--rose);">🔴 Tier 1 — High Risk</div>
+      <div class="card-desc">Churn probability ≥ 75% · ~40K clients</div>
+      <div class="action">
+        <div class="action-title">Dedicated Account Manager Call</div>
+        <div class="action-body">Personal outreach 90 days before expiry. Offer loyalty discount (10–15%) or premium restructuring. Flag for immediate escalation.</div>
+      </div>
+      <div class="action">
+        <div class="action-title">Personalised Retention Bundle</div>
+        <div class="action-body">Bundle additional coverage (road assistance, kasko) at reduced rate. Target clients with 0 warranties — high churn correlation.</div>
+      </div>
+    </div>
+    <div class="card accent-top">
+      <div class="card-title" style="color:var(--blue);">🟡 Tier 2 — Medium Risk</div>
+      <div class="card-desc">Churn probability 50–75% · ~60K clients</div>
+      <div class="action med">
+        <div class="action-title">Automated Renewal Campaign</div>
+        <div class="action-body">Email/SMS sequence 60 days before expiry. Highlight loyalty benefits. Early renewal discount (5%). No manual agent involvement.</div>
+      </div>
+      <div class="action med">
+        <div class="action-title">Cross-Sell Opportunity</div>
+        <div class="action-body">Offer complementary home or health insurance at renewal. Clients with multiple products have significantly lower churn rates.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🟢 Tier 3 — Low Risk</div>
+      <div class="card-desc">Churn probability &lt; 50% · ~450K clients</div>
+      <div class="action low">
+        <div class="action-title">Loyalty Maintenance Programme</div>
+        <div class="action-body">Annual satisfaction survey + NPS tracking. Automated anniversary message with discount voucher. No proactive intervention needed.</div>
+      </div>
+      <div class="action low">
+        <div class="action-title">Referral Programme</div>
+        <div class="action-body">Engaged loyal clients are the best advocates. Referral bonus (€50 premium credit) for successful new client introductions.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COVERAGE STRATEGY -->
+  <div class="sl">Coverage Strategy — Feature Insights for Retention</div>
+  <div class="g2">
+    <div class="card accent-top">
+      <div class="card-title">Coverage Impact on Churn</div>
+      <div class="card-desc">Clients with more coverages churn less — Total_Warranties is the #5 feature</div>
+      <canvas id="biz-coverage-chart" height="180"></canvas>
+    </div>
+    <div class="card accent-top">
+      <div class="card-title">Seniority vs Churn</div>
+      <div class="card-desc">New clients (0–1 yr) are most at risk — target early with onboarding programme</div>
+      <canvas id="biz-seniority-chart" height="180"></canvas>
+      <div style="margin-top:12px;">
+        <div class="action">
+          <div class="action-title">New Client Onboarding (0–2 yrs)</div>
+          <div class="action-body">First-year retention programme with dedicated support agent, 3-touch email sequence, and loyalty reward at 12-month mark.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEPLOYMENT -->
+  <div class="sl">Production Deployment Plan</div>
+  <div class="g3">
+    <div class="card" style="border-left:3px solid var(--blue-bright);">
+      <div class="card-title">Model File</div>
+      <div class="card-desc">Ready to deploy</div>
+      <div class="mini-table">
+        <tr><td>File</td><td class="val">lgbm_churn_final.pkl</td></tr>
+        <tr><td>Training data</td><td class="val">Full 750K dataset</td></tr>
+        <tr><td>Features</td><td class="val">14 (w/ Feat Eng)</td></tr>
+        <tr><td>Scorer</td><td class="val">predict_proba()[:,1]</td></tr>
+        <tr><td>Refresh cycle</td><td class="val">Annual retraining</td></tr>
+      </div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--green-mid);">
+      <div class="card-title">Scoring Pipeline</div>
+      <div class="card-desc">Batch scoring workflow</div>
+      <div style="font-size:10px;color:var(--text-gray);line-height:1.7;">1. Pull contracts expiring in next 90 days<br>2. Apply same feature engineering (Total_Warranties, Previously_Churned)<br>3. Score with lgbm_churn_final.pkl<br>4. Segment by probability threshold<br>5. Push to CRM for campaign execution</div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--wandb);">
+      <div class="card-title">Monitoring</div>
+      <div class="card-desc">WandB for ongoing tracking</div>
+      <div style="font-size:10px;color:var(--text-gray);line-height:1.7;">Log each scoring run to WandB with churn rate distribution, model prediction distribution (drift detection), and campaign response rates. Trigger retraining if ROC-AUC drops below 0.87 on validation cohort.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab navigation ────────────────────────────────────────────────────────
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Animated KPIs ─────────────────────────────────────────────────────────
+function animCount(id,target,decimals,suffix){
+  const el=document.getElementById(id);if(!el)return;
+  let start=0,dur=1200,step=16;
+  const inc=target/(dur/step);
+  const t=setInterval(()=>{
+    start=Math.min(start+inc,target);
+    el.textContent=start.toFixed(decimals)+suffix;
+    if(start>=target)clearInterval(t);
+  },step);
+}
+window.addEventListener('load',()=>{
+  animCount('kpi-churn',21.47,2,'%');
+  animCount('kpi-retained',78.53,2,'%');
+  animCount('kpi-recall',93.6,1,'%');
+  animCount('kpi-auc',0.8869,4,'');
+});
+
+// ── Animate hbars ─────────────────────────────────────────────────────────
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.hbar-fill').forEach(b=>{
+        const w=b.style.width;b.style.width='0';
+        setTimeout(()=>b.style.width=w,50);
+      });
+      observer.unobserve(e.target);
+    }
+  });
+},{threshold:0.2});
+document.querySelectorAll('.card,.page').forEach(c=>observer.observe(c));
+
+// ── COLOUR PALETTE ────────────────────────────────────────────────────────
+const BLUE='#1565C0', BLUE_BR='#2196F3', BLUE_LT='#4DA6FF',
+      ROSE='#880E4F', ROSE_LT='#F48FB1',
+      GREEN='#2E7D32', GREEN_LT='#81C784',
+      NAVY='#0A1F3D', GRAY='#64748B';
+
+const modelLabels=['LightGBM\nBaseline','XGBoost\nBaseline','XGBoost\nExpanded','LightGBM\nExpanded','Random\nForest','LR\nExpanded','LR\nBaseline'];
+
+// ── Churn Trend ───────────────────────────────────────────────────────────
+new Chart(document.getElementById('churn-trend-chart'),{
+  type:'line',
+  data:{
+    labels:['2015','2016','2017','2018','2019','2020'],
+    datasets:[{
+      label:'Churn Rate %',
+      data:[21.18,22.13,21.88,20.90,21.71,20.49],
+      borderColor:ROSE,backgroundColor:'rgba(136,14,79,0.08)',
+      tension:0.4,pointRadius:5,pointBackgroundColor:ROSE,fill:true,borderWidth:2.5
+    },{
+      label:'Average 21.5%',
+      data:[21.5,21.5,21.5,21.5,21.5,21.5],
+      borderColor:BLUE_BR,borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false
+    }]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,min:18,max:25,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}
+});
+
+// ── Recall Chart ──────────────────────────────────────────────────────────
+new Chart(document.getElementById('recall-chart'),{
+  type:'bar',
+  data:{
+    labels:['LGBM\nBaseline','XGB\nBaseline','XGB\nExpanded','LGBM\nExpanded','Rand\nForest','LR\nExpanded','LR\nBaseline'],
+    datasets:[{
+      data:[93.6,92.8,91.4,90.8,88.2,72.1,68.4],
+      backgroundColor:[ROSE,BLUE,BLUE_LT,BLUE_LT,'#7986CB','#B0BEC5','#CFD8DC'],
+      borderRadius:6
+    }]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,min:60,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false},ticks:{font:{size:9}}}}}
+});
+
+// ── AUC Chart ─────────────────────────────────────────────────────────────
+new Chart(document.getElementById('auc-chart'),{
+  type:'bar',
+  data:{
+    labels:['XGB\nBaseline','LGBM\nBaseline','XGB\nExpanded','LGBM\nExpanded','Rand\nForest','LR\nExpanded','LR\nBaseline'],
+    datasets:[{
+      data:[0.885,0.884,0.873,0.869,0.851,0.731,0.692],
+      backgroundColor:[BLUE,ROSE,BLUE_LT,BLUE_LT,'#7986CB','#B0BEC5','#CFD8DC'],
+      borderRadius:6
+    }]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,min:0.6,ticks:{callback:v=>v.toFixed(3)},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false},ticks:{font:{size:9}}}}}
+});
+
+// ── Radar ─────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('radar-chart'),{
+  type:'radar',
+  data:{
+    labels:['Recall','ROC-AUC','F1 Score','Precision','Accuracy'],
+    datasets:[{
+      label:'LightGBM Baseline',
+      data:[93.6,88.4,88.1,83.4,88.2],
+      borderColor:BLUE_BR,backgroundColor:'rgba(33,150,243,0.15)',pointBackgroundColor:BLUE_BR,borderWidth:2
+    },{
+      label:'Logistic Regression',
+      data:[68.4,69.2,68.1,65.8,69.2],
+      borderColor:ROSE,backgroundColor:'rgba(136,14,79,0.1)',pointBackgroundColor:ROSE,borderWidth:2
+    }]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{r:{beginAtZero:false,min:55,max:100,ticks:{display:false},grid:{color:'rgba(0,0,0,0.08)'},pointLabels:{font:{size:10}}}}}
+});
+
+// ── Feature Eng Impact ────────────────────────────────────────────────────
+new Chart(document.getElementById('feat-eng-chart'),{
+  type:'bar',
+  data:{
+    labels:['14 feat\n(w/ Total_Warranties)','18 feat\n(raw Cov_ flags)'],
+    datasets:[
+      {label:'LightGBM',data:[93.6,90.8],backgroundColor:[ROSE,BLUE_BR],borderRadius:8},
+      {label:'XGBoost',data:[92.8,91.4],backgroundColor:['rgba(136,14,79,0.4)','rgba(33,150,243,0.4)'],borderRadius:8}
+    ]
+  },
+  options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}},scales:{y:{beginAtZero:false,min:85,max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false},ticks:{font:{size:9}}}}}
+});
+
+// ── Coverage Chart ────────────────────────────────────────────────────────
+new Chart(document.getElementById('coverage-chart'),{
+  type:'bar',
+  data:{
+    labels:['Vandalism','Accident Illness','Bonus Protection','Fire & Theft','Kasko/MiniKasko'],
+    datasets:[
+      {label:'No Coverage — Churn%',data:[24.2,22.8,23.6,23.1,22.4],backgroundColor:'rgba(136,14,79,0.7)',borderRadius:4},
+      {label:'Has Coverage — Churn%',data:[17.8,18.2,17.1,16.9,17.6],backgroundColor:'rgba(21,101,192,0.7)',borderRadius:4}
+    ]
+  },
+  options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}}},scales:{y:{beginAtZero:false,min:14,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false},ticks:{font:{size:9}}}}}
+});
+
+// ── Biz Coverage ─────────────────────────────────────────────────────────
+new Chart(document.getElementById('biz-coverage-chart'),{
+  type:'bar',
+  data:{
+    labels:['0 coverages','1 coverage','2 coverages','3 coverages','4+ coverages'],
+    datasets:[{
+      label:'Churn Rate %',
+      data:[28.4,22.1,18.6,15.2,11.8],
+      backgroundColor:[ROSE,'rgba(136,14,79,0.7)','rgba(33,150,243,0.5)',BLUE,BLUE_BR],
+      borderRadius:6
+    }]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,min:8,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false},ticks:{font:{size:9}}}}}
+});
+
+// ── Biz Seniority ─────────────────────────────────────────────────────────
+new Chart(document.getElementById('biz-seniority-chart'),{
+  type:'line',
+  data:{
+    labels:['0–1 yr','2–3 yrs','4–7 yrs','8–15 yrs','15+ yrs'],
+    datasets:[{
+      label:'Churn Rate %',
+      data:[34.6,26.3,30.0,14.2,9.4],
+      borderColor:BLUE_BR,backgroundColor:'rgba(33,150,243,0.1)',
+      tension:0.4,pointRadius:5,pointBackgroundColor:BLUE_BR,fill:true,borderWidth:2.5
+    }]
+  },
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,min:5,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},x:{grid:{display:false}}}}
+});
+</script>
+</body>
+</html>

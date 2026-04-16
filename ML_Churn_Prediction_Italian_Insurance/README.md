@@ -7,6 +7,13 @@
 
 ---
 
+## 📊 Live Dashboard
+
+> ### 👉 [View Interactive Churn Dashboard](https://strong-dolphin-66a5cd.netlify.app/)
+> Explore the full model results, customer segmentation, churn risk scores, and business insights interactively.
+
+---
+
 ## Authors
 
 **Machine Learning Fieldwork 2026 | DSBA – Group 5**

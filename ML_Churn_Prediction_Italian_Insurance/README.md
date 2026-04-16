@@ -7,6 +7,22 @@
 
 ---
 
+## Authors
+
+**Machine Learning Fieldwork 2026 | DSBA – Group 5**
+
+| Name |
+|---|
+| Federico Zabeo |
+| Hanna Kassahun Yihunie |
+| Francesco Gambera |
+| Akosua Ayewa Ofori-Karikari |
+| Sukhdeep Singh Saini |
+| Sofia Silingardi |
+| Maria Alejandra Zapata Gil |
+
+---
+
 ## Project Overview
 
 An end-to-end machine learning project focused on predicting customer churn for an Italian motor insurance company, with the goal of enabling targeted retention campaigns and improving customer retention.
